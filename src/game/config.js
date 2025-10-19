@@ -23,7 +23,7 @@ const config = {
       debug: false,
     },
   },
-  scene: [BootScene, WinnerScene, Round1, Round2],
+  scene: [BootScene, Round1, Round2, WinnerScene],
 };
 
 export default config;

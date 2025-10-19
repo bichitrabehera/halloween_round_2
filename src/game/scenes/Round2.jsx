@@ -156,7 +156,7 @@ export default class Round2 extends Phaser.Scene {
             this.physics.add.existing(zone, true);
 
             // Debug visualization (green semi-transparent rectangle)
-            const _zoneDebug = this.add.rectangle(x, y, interactionWidth, interactionHeight, 0x00ff00, 0.2).setOrigin(0.5); return zone;
+            const _zoneDebug = this.add.rectangle(x, y, interactionWidth, interactionHeight, 0x000000, 0.2).setOrigin(0.5); return zone;
         };
 
         // Initialize prompt guards
@@ -268,7 +268,7 @@ print(shift(9))  # ???`,
         }).setOrigin(0.5, 0);
 
         const promptText = this.add
-            .text(width / 2, height / 2 + 100, "💻 Enter the answer below:", {
+            .text(width / 2, height / 2 + 100, "Enter the answer below:", {
                 fontSize: "20px",
                 color: "#ffffff",
             })
@@ -310,14 +310,14 @@ print(shift(9))  # ???`,
                     }
 
                     this.add
-                        .text(width / 2, height / 2 - 200, `✅ Terminal ${terminalNumber} unlocked!`, {
+                        .text(width / 2, height / 2 - 200, `Terminal unlocked!`, {
                             fontSize: "24px",
                             color: "#00ff00",
                         })
                         .setOrigin(0.5);
                 } else {
-                    promptText.setText("❌ Wrong answer! Try again...");
-                    
+                    promptText.setText("Wrong answer! Try again...");
+
                 }
             }
         };
