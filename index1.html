@@ -1,0 +1,206 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kaboom.js Riddle Platformer</title>
+  <style>
+    html,body{height:100%;margin:0;background:#0b1220;color:#fff;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    #game{width:100%;height:100vh;display:block}
+    /* simple overlay for messages */
+    #overlay{
+      position:fixed;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none
+    }
+    .dialog{background:rgba(0,0,0,0.85);padding:18px;border-radius:10px;min-width:320px;max-width:560px;pointer-events:auto}
+    .dialog h3{margin:0 0 8px 0}
+    .dialog p{margin:6px 0}
+    .dialog input{width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #444;background:#111;color:#fff}
+    .dialog button{margin-top:10px;padding:8px 12px;border-radius:6px;background:#2b6cff;border:none;color:#fff;cursor:pointer}
+    .inventory{position:fixed;right:12px;top:12px;background:rgba(255,255,255,0.06);padding:8px 12px;border-radius:10px}
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="overlay" style="display:none"></div>
+<div class="inventory" id="inv">Collected: <span id="collected">0</span>/3</div><script type="module">
+import kaboom from 'https://unpkg.com/kaboom/dist/kaboom.mjs'
+
+// initialize kaboom
+const k = kaboom({
+  global: true,
+  width: 800,
+  height: 480,
+  canvas: document.getElementById('game'),
+  scale: 1,
+  clearColor: [0.04,0.06,0.08,1]
+})
+
+// --- assets (basic shapes)
+loadSprite('player', null, {
+  sliceX:1, sliceY:1, src: null
+})
+
+// We'll draw simple rectangles for objects using 'rect' components instead of sprites.
+
+// game state for riddles and code
+const riddles = [
+  { id: 'r1', q: 'Riddle 1: I have keys but no locks, space but no room. What am I?', a: 'keyboard', clue: 'common input device' },
+  { id: 'r2', q: 'Coding question: What is the result of 2 + 3 * 4?', a: '14', clue: 'remember operator precedence' },
+  { id: 'r3', q: 'Riddle 3: I speak without a mouth and hear without ears. I have nobody, but I come alive with wind. What am I?', a: 'echo', clue: 'you hear it in caves' }
+]
+
+// code pieces you earn (in order r1, r2, r3)
+const codePieces = { r1: 'K', r2: '4', r3: 'B' } // final code "K4B"
+let earned = { r1:false, r2:false, r3:false }
+
+// helper: overlay dialog
+const overlay = document.getElementById('overlay')
+function showDialog(title, text, withInput=false, placeholder='', onSubmit=null){
+  overlay.innerHTML = ''
+  overlay.style.display = 'flex'
+  const div = document.createElement('div')
+  div.className = 'dialog'
+  div.innerHTML = `<h3>${title}</h3><p>${text}</p>`
+  if(withInput){
+    const input = document.createElement('input')
+    input.placeholder = placeholder
+    div.appendChild(input)
+    const btn = document.createElement('button')
+    btn.textContent = 'Submit'
+    btn.onclick = ()=>{ if(onSubmit) onSubmit(input.value); hideDialog() }
+    div.appendChild(btn)
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ btn.click() }})
+  } else {
+    const btn = document.createElement('button')
+    btn.textContent = 'OK'
+    btn.onclick = hideDialog
+    div.appendChild(btn)
+  }
+  overlay.appendChild(div)
+}
+function hideDialog(){ overlay.style.display = 'none'; overlay.innerHTML='' }
+
+// update inventory UI
+function updateInv(){ document.getElementById('collected').textContent = Object.values(earned).filter(Boolean).length }
+updateInv()
+
+// define level
+scene('main', ()=>{
+  layers(['bg','obj','ui'], 'obj')
+
+  // gravity
+  gravity(2400)
+
+  // add some platforms using grid of characters for clarity
+  const level = [
+    '                          ',
+    '                          ',
+    '                          ',
+    '                          ',
+    '      ====      ====      ',
+    '                          ',
+    '  ===        ====        =',
+    '                          ',
+    '====         ====     ====',
+    '                          ',
+    '=========================='
+  ]
+
+  const mapping = {
+    '=': () => [rect(64,16), solid(), color(0.4,0.6,1), area(), origin('center')],
+    ' ': ()=>null
+  }
+
+  // build platforms
+  level.forEach((row, y)=>{
+    row.split('').forEach((ch, x)=>{
+      if(ch === '='){
+        add([pos(x*32+16, y*48+24), rect(64,16), solid(), area(), origin('center'), color(0.2,0.5,0.9)])
+      }
+    })
+  })
+
+  // player
+  const player = add([
+    pos(48, 48),
+    rect(26,34),
+    color(1,0.6,0.3),
+    area(),
+    body(),
+    origin('center'),
+    { speed: 240 }
+  ])
+
+  // controls
+  keyDown('left', ()=>{ player.move(-player.speed,0) })
+  keyDown('right', ()=>{ player.move(player.speed,0) })
+  keyPress('space', ()=>{ if(player.isGrounded()) player.jump(700) })
+
+  // camera follow
+  player.onUpdate(()=>{ camPos(player.pos) })
+
+  // NPCs that provide riddles
+  const npcs = [
+    add([pos(220, 48), rect(28,40), color(0.8,0.3,0.8), area(), origin('center'), 'npc','r1']),
+    add([pos(420, 120), rect(28,40), color(0.8,0.6,0.2), area(), origin('center'), 'npc','r2']),
+    add([pos(680, 48), rect(28,40), color(0.2,0.9,0.5), area(), origin('center'), 'npc','r3'])
+  ]
+
+  npcs.forEach(npc=>{
+    npc.onCollide('player', ()=>{
+      const rid = npc[2]
+      if(earned[rid]){
+        showDialog('Already solved', 'You already solved this one. You earned: '+codePieces[rid])
+        return
+      }
+      const r = riddles.find(rr=>rr.id === rid)
+      showDialog('Riddle', `${r.q}<br><small>Hint: ${r.clue}</small>`, true, 'type answer...', (val)=>{
+        if(String(val).trim().toLowerCase() === String(r.a).toLowerCase()){
+          earned[rid] = true
+          updateInv()
+          showDialog('Correct!',` Nice — you got the piece: ${codePieces[rid]}`)
+        } else {
+          showDialog('Nope', 'That isn\'t right. Try again later!')
+        }
+      })
+    })
+  })
+
+  // exit door
+  const exit = add([pos(920, 48), rect(48,72), color(0.1,0.9,0.9), area(), origin('center'), 'exit'])
+
+  exit.onCollide('player', ()=>{
+    // when player touches exit, require code input
+    const needed = Object.values(codePieces).join('')
+    showDialog('Exit Locked',` This door is locked. Enter the 3-character code to open it.`, true, 'code...', (val)=>{
+      if(!val) return
+      if(val.trim() === needed){
+        showDialog('Unlocked!', 'You opened the door — you win!')
+        // celebrate
+        add([pos(player.pos.x, player.pos.y-50), text('🎉', { size:48 }), origin('center')])
+      } else {
+        // if they don't have pieces, show hint
+        const have = Object.keys(earned).filter(k=>earned[k]).map(k=>codePieces[k]).join('')
+        const missing = 3 - have.length
+        showDialog('Wrong code', `That code is incorrect. You have ${have.length} piece(s): ${have || 'none'}. ${missing} to go.`)
+      }
+    })
+  })
+
+  // fall death
+  player.onUpdate(()=>{
+    if(player.pos.y > 2000){
+      wait(0.2, ()=>go('main'))
+    }
+  })
+
+  // simple instructions
+  add([pos(30, -200), text('Use ← → to move, Space to jump. Find NPCs (colored blocks) to solve riddles and get code pieces.', { size: 16 }), origin('topleft')])
+
+})
+
+start('main')
+
+</script></body>
+</html>
