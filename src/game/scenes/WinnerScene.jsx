@@ -40,7 +40,7 @@ export default class WinnerScene extends Phaser.Scene {
 
         // Text overlay on top of the image
         this.add.text(timerBanner.x, timerBanner.y + 50, `${timeTaken} seconds`, {
-            fontSize: "38px",
+            fontSize: "40px",
             fontFamily: "monospace",
             color: "#ffffff",
             fontStyle: "bold",
