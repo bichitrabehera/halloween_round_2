@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import winnerImg from "../../assets/winner.png";
+import winnerImg from "../../assets/win.png";
 import bg from "../../assets/final_bg.svg";
 import timeTaken from "../../assets/timeTaken.png";
 
