@@ -3,6 +3,7 @@ import BootScene from "./scenes/BootScene";
 import Round1 from "./scenes/Round1";
 import Round2 from "./scenes/Round2";
 import WinnerScene from "./scenes/WinnerScene";
+import GameOver from "./scenes/GameOver";
 
 const config = {
   type: Phaser.AUTO,
@@ -23,7 +24,7 @@ const config = {
       debug: false,
     },
   },
-  scene: [BootScene, Round1, Round2, WinnerScene],
+  scene: [BootScene, Round1, Round2, WinnerScene, GameOver],
 };
 
 export default config;

@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import winnerSvg from "../../assets/winner.png";
+import winnerImg from "../../assets/winner.png";
 import bg from "../../assets/final_bg.svg";
 import timeTaken from "../../assets/timeTaken.png";
 
@@ -9,7 +9,7 @@ export default class WinnerScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image("winnerSvg", winnerSvg);
+        this.load.image("winnerImg", winnerImg);
         this.load.image("bg", bg);
         this.load.image("timeTaken", timeTaken);
     }
@@ -22,8 +22,8 @@ export default class WinnerScene extends Phaser.Scene {
         const bgImage = this.add.image(width / 2, height / 2, "bg");
         bgImage.setDisplaySize(width, height);
 
-        // Winner SVG
-        this.add.image(width / 2, height / 2 - 100, "winnerSvg")
+        // Winner Image
+        this.add.image(width / 2, height / 2 - 100, "winnerImg")
             .setScale(0.3)
             .setOrigin(0.5);
 

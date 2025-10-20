@@ -42,6 +42,7 @@ export default class Round2 extends Phaser.Scene {
         super("Round2");
         this.code1Solved = false;
         this.code2Solved = false;
+        this.chances = 3; // total allowed wrong attempts for this round
     }
 
     preload() {
@@ -83,6 +84,8 @@ export default class Round2 extends Phaser.Scene {
     }
 
     create() {
+        // reset chances when the scene starts/restarts
+        this.chances = 3;
         const width = window.innerWidth;
         const height = window.innerHeight;
 
@@ -268,7 +271,7 @@ print(shift(9))  # ???`,
         }).setOrigin(0.5, 0);
 
         const promptText = this.add
-            .text(width / 2, height / 2 + 100, "Enter the answer below:", {
+            .text(width / 2, height / 2 + 100, `Enter the answer below: (${this.chances} chances left)`, {
                 fontSize: "20px",
                 color: "#ffffff",
             })
@@ -316,7 +319,25 @@ print(shift(9))  # ???`,
                         })
                         .setOrigin(0.5);
                 } else {
-                    promptText.setText("Wrong answer! Try again...");
+                    // Decrement chances and show remaining
+                    this.chances = (typeof this.chances === 'number') ? this.chances - 1 : 2;
+                    if (this.chances > 0) {
+                        promptText.setText(`Wrong answer! ${this.chances} chance${this.chances === 1 ? '' : 's'} left.`);
+                    } else {
+                        // No chances left -> go to GameOver
+                        // Clean up DOM and overlay first
+                        input.removeEventListener("keydown", keyListener);
+                        input.remove();
+                        overlay.destroy();
+                        snippetText.destroy();
+                        promptText.destroy();
+                        this.physics.resume();
+                        // Reset prompt flags so scene exit is clean
+                        this.prompt1Open = false;
+                        this.prompt2Open = false;
+                        // Transition to GameOver scene
+                        this.scene.start("GameOver");
+                    }
 
                 }
             }

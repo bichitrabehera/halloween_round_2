@@ -67,6 +67,8 @@ export default class Round1 extends Phaser.Scene {
     }
 
     create() {
+        // reset chances when the scene starts/restarts
+        this.chances = 3;
         const width = window.innerWidth;
         const height = window.innerHeight;
 
@@ -320,7 +322,10 @@ print(secret_code())  # ??? what is the output?
         document.body.appendChild(codeBox);
 
         // Prompt text
-        const promptText = this.add.text(width / 2, height / 2 + overlayHeight / 2 - 100, "💻 Enter the answer below:", {
+        // mark prompt open so it doesn't re-open repeatedly
+        this.promptOpen = true;
+
+        const promptText = this.add.text(width / 2, height / 2 + overlayHeight / 2 - 100, `💻 Enter the answer below: (${this.chances} chances left)`, {
             fontSize: "20px",
             color: "#ffffff",
         }).setOrigin(0.5);
@@ -351,6 +356,7 @@ print(secret_code())  # ??? what is the output?
                     overlay.destroy();
                     promptText.destroy();
                     this.codeSolved = true;
+                    this.promptOpen = false;
                     this.physics.resume();
 
                     this.add.image(width / 2, height / 2 - overlayHeight / 2 - 200, "correctAnswer").setOrigin(0.5);
@@ -362,7 +368,21 @@ print(secret_code())  # ??? what is the output?
                     //     wordWrap: { width: 400, useAdvancedWrap: true }
                     // }).setOrigin(0.5);
                 } else {
-                    promptText.setText("❌ Wrong answer! Try again...");
+                    // decrement chances and update prompt
+                    this.chances = (typeof this.chances === 'number') ? this.chances - 1 : 2;
+                    if (this.chances > 0) {
+                        promptText.setText(`❌ Wrong answer! ${this.chances} chance${this.chances === 1 ? '' : 's'} left.`);
+                    } else {
+                        // out of chances -> cleanup and go to GameOver
+                        input.removeEventListener("keydown", keyListener);
+                        input.remove();
+                        codeBox.remove();
+                        overlay.destroy();
+                        promptText.destroy();
+                        this.physics.resume();
+                        this.promptOpen = false;
+                        this.scene.start("GameOver");
+                    }
                 }
             }
         };
