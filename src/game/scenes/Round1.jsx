@@ -67,50 +67,50 @@ export default class Round1 extends Phaser.Scene {
     }
 
     create() {
-        // reset chances when the scene starts/restarts
+        // --- Responsive scaling setup ---
+        const BASE_WIDTH = 1920;
+        const BASE_HEIGHT = 1080;
+        const width = this.scale.width;
+        const height = this.scale.height;
+        const scaleRatio = Math.min(width / BASE_WIDTH, height / BASE_HEIGHT);
+
         this.chances = 3;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        this.canDoubleJump = true;
+        this.codeSolved = false;
 
-        this.canDoubleJump = true; // Double jump tracker
-        this.codeSolved = false;    // Terminal code status
-
-        // Background
+        // --- Background ---
         const bg = this.add.image(width / 2, height / 2, "sky1");
         bg.setDisplaySize(width, height);
 
-        // Platforms
+        // --- Platform creation helper (auto-scaled) ---
         this.platforms = this.physics.add.staticGroup();
         const p = (x, y, key, flip = false, scale = 1, alpha = 1) => {
-            const obj = this.platforms.create(x, y, key);
-            obj.setScale(scale).refreshBody();
+            const obj = this.platforms.create(x * scaleRatio, y * scaleRatio, key);
+            obj.setScale(scale * scaleRatio).refreshBody();
             obj.setFlipX(flip);
             obj.setAlpha(alpha);
             return obj;
         };
 
-        // Bottom platforms (ground) - wider spacing
-        p(200, 870, "1");            // left ground
-        p(960, 870, "8");             // center ground (slightly higher for jump)
-        p(1770, 1000, "1", true);      // right ground
+        // --- Platforms ---
+        p(200, 870, "1");
+        p(960, 870, "8");
+        p(1770, 1000, "1", true);
 
-        // Mid-level platforms - staggered & tricky jumps
-        p(350, 750, "71");            // left mid
-        p(620, 700, "72");            // slightly higher mid-left
-        p(960, 650, "61");            // center mid
-        p(1300, 700, "72", true);     // mid-right inner
-        p(1670, 750, "71", true);     // right mid
+        p(350, 750, "71");
+        p(620, 700, "72");
+        p(960, 650, "61");
+        p(1300, 700, "72", true);
+        p(1670, 750, "71", true);
 
-        // Upper-level platforms - narrow & spaced
-        p(500, 500, "4");             // left upper
-        p(800, 450, "62");             // mid-left upper
-        p(1120, 450, "63");            // mid-right upper
-        p(1450, 500, "4", true);       // right upper
+        p(500, 500, "4");
+        p(800, 450, "62");
+        p(1120, 450, "63");
+        p(1450, 500, "4", true);
 
-        // Top platforms - precision jumps
-        p(650, 300, "3");             // left top
-        p(1270, 300, "3", true);      // right top
-        p(960, 250, "8");             // center top (requires combo jump/double jump)
+        p(650, 300, "3");
+        p(1270, 300, "3", true);
+        p(960, 250, "8");
 
         // Invisible / code platforms
         p(360, 1050, "L", false, 1, 0);
@@ -119,126 +119,141 @@ export default class Round1 extends Phaser.Scene {
         p(1200, 1030, "O", false, 1, 0);
         p(1560, 1050, "P", false, 1, 0);
 
-        // Side walls & ceiling boundaries
+        // Side walls & top boundaries
         p(30, 540, "l-2", false, 1, 0);
         p(1890, 540, "r-2", false, 1, 0);
         p(960, 70, "t-2", false, 1, 0);
 
-        // Terminal platform (player can stand on to reach terminal)
-        p(200, 350, "1");  // small platform directly below terminal
+        // Terminal & exit platforms
+        p(200, 350, "1");
+        p(1750, 350, "1");
+        p(950, 900, "8");
+        p(1200, 900, "8");
 
-        // Exit platform (player can land safely before exit)
-        p(1750, 350, "1");  // small platform directly below exit
-
-        // Optional: repeat platforms for smoother navigation
-        p(950, 900, "8");   // intermediate ground
-        p(1200, 900, "8");  // intermediate ground right
-
-
-
-        // Player
-        this.player = this.physics.add.sprite(300, 800, "still1").setScale(0.15);
-        this.player.setBounce(0.05);
-        this.player.setCollideWorldBounds(true);
-        this.player.setGravityY(1200);
+        // --- Player ---
+        this.player = this.physics.add
+            .sprite(300 * scaleRatio, 800 * scaleRatio, "still1")
+            .setScale(0.15 * scaleRatio)
+            .setBounce(0.05)
+            .setCollideWorldBounds(true);
+        this.player.setGravityY(1200 * scaleRatio);
         this.physics.add.collider(this.player, this.platforms);
 
-        // Invisible floor at bottom
+        // --- Floor (invisible) ---
         this.floor = this.physics.add.staticGroup();
-        this.floor.create(width / 2, height + 30, null)
+        this.floor
+            .create(width / 2, height + 30 * scaleRatio, null)
             .setVisible(false)
-            .setSize(width, 60)
+            .setSize(width, 60 * scaleRatio)
             .refreshBody();
         this.physics.add.collider(this.player, this.floor);
 
-        // Camera & world bounds
-        this.cameras.main.setBounds(0, 0, width, height);
-        this.physics.world.setBounds(0, 0, width, height);
+        // --- Camera & world bounds ---
+        this.cameras.main.setBounds(0, 0, BASE_WIDTH * scaleRatio, BASE_HEIGHT * scaleRatio);
+        this.physics.world.setBounds(0, 0, BASE_WIDTH * scaleRatio, BASE_HEIGHT * scaleRatio);
 
-        // Terminal / checkpoint
-        // place the terminal just above the small platform at x=200 (platform y=350) so player standing
-        // on the platform is within the interaction range.
-        this.terminal = this.physics.add.staticImage(200, 300, "terminal").setScale(0.1); // replace arrow with terminal image
+        // --- Terminal ---
+        this.terminal = this.physics.add
+            .staticImage(200 * scaleRatio, 300 * scaleRatio, "terminal")
+            .setScale(0.1 * scaleRatio);
 
-        // original (unscaled) texture bounds which may be very large.
-        if (this.terminal.body) {
-            try {
-                this.terminal.body.setSize(this.terminal.displayWidth, this.terminal.displayHeight);
-                this.terminal.body.setOffset(-this.terminal.displayWidth * 0.5, -this.terminal.displayHeight * 0.5);
-            } catch {
-                // Some Phaser builds expose different body APIs; if setSize/setOffset fail, fall back to a distance check below.
-            }
-        }
-        const interactionWidth = 80;
-        const interactionHeight = 120;
-        const interactionX = 200; // same x as terminal/platform
-        const interactionY = 330; // slightly above the platform (platform y = 350)
+        const interactionZone = this.add
+            .zone(200 * scaleRatio, 330 * scaleRatio, 80 * scaleRatio, 120 * scaleRatio)
+            .setOrigin(0.5);
+        this.physics.add.existing(interactionZone, true);
 
-        const interactionZone = this.add.zone(interactionX, interactionY, interactionWidth, interactionHeight).setOrigin(0.5);
-        this.physics.add.existing(interactionZone, true); // make it a static physics body
-
-        // opening the prompt multiple times.
         this.promptOpen = false;
-        this.physics.add.overlap(this.player, interactionZone, () => {
-            if (!this.promptOpen && !this.codeSolved) {
-                this.showCodePrompt();
-            }
-        }, undefined, this);
+        this.physics.add.overlap(
+            this.player,
+            interactionZone,
+            () => {
+                if (!this.promptOpen && !this.codeSolved) {
+                    this.showCodePrompt();
+                }
+            },
+            undefined,
+            this
+        );
 
-        // Exit
-        this.exitArrow = this.physics.add.staticImage(1750, 300, "arrow").setScale(0.9);
-        this.physics.add.overlap(this.player, this.exitArrow, () => {
-            if (this.codeSolved) {
-                // Show confirmation dialog before moving to Round2
-                const confirmBg = this.add.rectangle(window.innerWidth / 2, window.innerHeight / 2, 400, 180, 0x000000, 0.85).setOrigin(0.5);
-                const confirmText = this.add.text(window.innerWidth / 2, window.innerHeight / 2 - 30, "Proceed to Round 2?", {
-                    fontSize: "28px",
-                    color: "#fff",
-                    align: "center"
-                }).setOrigin(0.5);
-                const yesBtn = this.add.text(window.innerWidth / 2 - 80, window.innerHeight / 2 + 40, "Yes", {
-                    fontSize: "32px",
-                    color: "#00ff00",
-                    backgroundColor: "#222",
-                    padding: { left: 20, right: 20, top: 10, bottom: 10 }
-                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-                const noBtn = this.add.text(window.innerWidth / 2 + 80, window.innerHeight / 2 + 40, "No", {
-                    fontSize: "32px",
-                    color: "#ff0000",
-                    backgroundColor: "#222",
-                    padding: { left: 20, right: 20, top: 10, bottom: 10 }
-                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        // --- Exit ---
+        this.exitArrow = this.physics.add
+            .staticImage(1750 * scaleRatio, 300 * scaleRatio, "arrow")
+            .setScale(0.9 * scaleRatio);
+        this.physics.add.overlap(
+            this.player,
+            this.exitArrow,
+            () => {
+                if (this.codeSolved) {
+                    const cx = width / 2;
+                    const cy = height / 2;
+                    const confirmBg = this.add.rectangle(cx, cy, 400, 180, 0x000000, 0.85).setOrigin(0.5);
+                    const confirmText = this.add
+                        .text(cx, cy - 30, "Proceed to Round 2?", {
+                            fontSize: `${28 * scaleRatio}px`,
+                            color: "#fff",
+                            align: "center",
+                        })
+                        .setOrigin(0.5);
+                    const yesBtn = this.add
+                        .text(cx - 80, cy + 40, "Yes", {
+                            fontSize: `${32 * scaleRatio}px`,
+                            color: "#00ff00",
+                            backgroundColor: "#222",
+                            padding: { left: 20, right: 20, top: 10, bottom: 10 },
+                        })
+                        .setOrigin(0.5)
+                        .setInteractive({ useHandCursor: true });
+                    const noBtn = this.add
+                        .text(cx + 80, cy + 40, "No", {
+                            fontSize: `${32 * scaleRatio}px`,
+                            color: "#ff0000",
+                            backgroundColor: "#222",
+                            padding: { left: 20, right: 20, top: 10, bottom: 10 },
+                        })
+                        .setOrigin(0.5)
+                        .setInteractive({ useHandCursor: true });
 
-                yesBtn.on("pointerdown", () => {
-                    confirmBg.destroy(); confirmText.destroy(); yesBtn.destroy(); noBtn.destroy();
-                    this.scene.start("Round2");
-                });
-                noBtn.on("pointerdown", () => {
-                    confirmBg.destroy(); confirmText.destroy(); yesBtn.destroy(); noBtn.destroy();
-                });
-            } else {
-                const warning = this.add.text(this.player.x, this.player.y - 100, "⚠️ Solve the terminal first!", {
-                    fontSize: "20px",
-                    color: "#ff0000",
-                    backgroundColor: "#000000aa",
-                }).setOrigin(0.5);
-                this.time.delayedCall(1500, () => warning.destroy());
-            }
-        }, undefined, this);
+                    yesBtn.on("pointerdown", () => {
+                        confirmBg.destroy();
+                        confirmText.destroy();
+                        yesBtn.destroy();
+                        noBtn.destroy();
+                        this.scene.start("Round2");
+                    });
+                    noBtn.on("pointerdown", () => {
+                        confirmBg.destroy();
+                        confirmText.destroy();
+                        yesBtn.destroy();
+                        noBtn.destroy();
+                    });
+                } else {
+                    const warning = this.add
+                        .text(this.player.x, this.player.y - 100 * scaleRatio, "⚠️ Solve the terminal first!", {
+                            fontSize: `${20 * scaleRatio}px`,
+                            color: "#ff0000",
+                            backgroundColor: "#000000aa",
+                        })
+                        .setOrigin(0.5);
+                    this.time.delayedCall(1500, () => warning.destroy());
+                }
+            },
+            undefined,
+            this
+        );
 
-        // Animations
+        // --- Animations ---
         this.anims.create({
             key: "walk",
             frames: [{ key: "walk1" }, { key: "walk2" }, { key: "still1" }],
             frameRate: 8,
-            repeat: -1
+            repeat: -1,
         });
         this.anims.create({ key: "idle", frames: [{ key: "still1" }], frameRate: 1 });
         this.anims.create({
             key: "jump",
             frames: [{ key: "jump1" }, { key: "jump2" }, { key: "jump3" }],
             frameRate: 6,
-            repeat: 0
+            repeat: 0,
         });
 
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -246,11 +261,8 @@ export default class Round1 extends Phaser.Scene {
 
     update() {
         if (!this.player || !this.cursors) return;
-
         const onGround = this.player.body.blocked.down || this.player.body.touching.down;
         const moveSpeed = 300;
-
-        // Horizontal movement
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-moveSpeed);
             this.player.setFlipX(false);
@@ -264,53 +276,38 @@ export default class Round1 extends Phaser.Scene {
             if (onGround) this.player.play("idle", true);
         }
 
-        // Double jump
         if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
-            this.player.setVelocityY(-500); // jump velocity
+            this.player.setVelocityY(-500);
             this.player.play("jump", true);
         }
 
         if (!onGround && !this.player.anims.isPlaying) {
             this.player.setTexture("jump2");
         }
-
-        if (onGround) {
-            this.canDoubleJump = true;
-        }
+        if (onGround) this.canDoubleJump = true;
     }
 
-    showCodePrompt(
-        correctCode = "735",
-        pythonSnippet = `
+    showCodePrompt(correctCode = "735", pythonSnippet = `
 # Python puzzle example
 def secret_code():
     return 7*100 + 3*10 + 5
 
-
 print(secret_code())  # ??? what is the output?
-`
-    ) {
+`) {
         if (this.codeSolved) return;
-
         this.physics.pause();
-        const width = window.innerWidth;
-        const height = window.innerHeight;
 
-        // Calculate height dynamically based on text length
-        const estimatedLines = pythonSnippet.split("\n").length;
-        const textHeight = estimatedLines * 22; // rough estimate per line
-        const overlayHeight = Math.min(textHeight + 250, height * 0.9); // cap at 90% of screen
-
-        // Overlay background (auto-height)
+        const width = this.scale.width;
+        const height = this.scale.height;
+        const overlayHeight = Math.min(height * 0.8, 500);
         const overlay = this.add.rectangle(width / 2, height / 2, 550, overlayHeight, 0x000000, 0.95);
 
-        // Create a DOM container for scrollable code text
         const codeBox = document.createElement("div");
         codeBox.style.position = "fixed";
         codeBox.style.left = `${width / 2 - 250}px`;
         codeBox.style.top = `${height / 2 - overlayHeight / 2 + 30}px`;
         codeBox.style.width = "500px";
-        codeBox.style.height = `${overlayHeight - 180}px`; // leave space for prompt & input
+        codeBox.style.height = `${overlayHeight - 180}px`;
         codeBox.style.overflowY = "auto";
         codeBox.style.background = "transparent";
         codeBox.style.color = "#00ff00";
@@ -321,16 +318,14 @@ print(secret_code())  # ??? what is the output?
         codeBox.textContent = pythonSnippet;
         document.body.appendChild(codeBox);
 
-        // Prompt text
-        // mark prompt open so it doesn't re-open repeatedly
         this.promptOpen = true;
+        const promptText = this.add
+            .text(width / 2, height / 2 + overlayHeight / 2 - 100, `💻 Enter the answer below: (${this.chances} chances left)`, {
+                fontSize: "20px",
+                color: "#ffffff",
+            })
+            .setOrigin(0.5);
 
-        const promptText = this.add.text(width / 2, height / 2 + overlayHeight / 2 - 100, `💻 Enter the answer below: (${this.chances} chances left)`, {
-            fontSize: "20px",
-            color: "#ffffff",
-        }).setOrigin(0.5);
-
-        // Input box
         const input = document.createElement("input");
         input.type = "text";
         input.placeholder = "Type your answer here...";
@@ -358,22 +353,12 @@ print(secret_code())  # ??? what is the output?
                     this.codeSolved = true;
                     this.promptOpen = false;
                     this.physics.resume();
-
                     this.add.image(width / 2, height / 2 - overlayHeight / 2 - 200, "correctAnswer").setOrigin(0.5);
-                    // this.add.text(width / 2, height / 2 - overlayHeight / 2 - 40, "✅ Correct! Now go to the exit.", {
-                    //     fontSize: "26px",
-                    //     fontWeight: "bold",
-                    //     color: "#00ff00",
-                    //     textAlign: "center",
-                    //     wordWrap: { width: 400, useAdvancedWrap: true }
-                    // }).setOrigin(0.5);
                 } else {
-                    // decrement chances and update prompt
-                    this.chances = (typeof this.chances === 'number') ? this.chances - 1 : 2;
+                    this.chances = this.chances - 1;
                     if (this.chances > 0) {
-                        promptText.setText(`❌ Wrong answer! ${this.chances} chance${this.chances === 1 ? '' : 's'} left.`);
+                        promptText.setText(`❌ Wrong answer! ${this.chances} chance${this.chances === 1 ? "" : "s"} left.`);
                     } else {
-                        // out of chances -> cleanup and go to GameOver
                         input.removeEventListener("keydown", keyListener);
                         input.remove();
                         codeBox.remove();
@@ -388,6 +373,4 @@ print(secret_code())  # ??? what is the output?
         };
         input.addEventListener("keydown", keyListener);
     }
-
-
 }
