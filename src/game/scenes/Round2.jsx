@@ -11,6 +11,8 @@ import still1 from "../../assets/char3.png";
 import jump2 from "../../assets/char3.png";
 import terminalImg from "../../assets/terminal.png";
 import arrow from "../../assets/arrow.svg";
+import q1 from "../../assets/question1.png"
+import q2 from "../../assets/question1.png"
 
 export default class Round2 extends Phaser.Scene {
     constructor() {
@@ -31,6 +33,8 @@ export default class Round2 extends Phaser.Scene {
         this.load.image("jump2", jump2);
         this.load.image("terminal", terminalImg);
         this.load.image("arrow", arrow);
+        this.load.image("q1", q1)
+        this.load.image("q2", q2)
     }
 
     create() {
@@ -101,7 +105,7 @@ export default class Round2 extends Phaser.Scene {
         this.physics.add.overlap(this.player, terminal1Zone, () => {
             if (!this.prompt1Open && !this.code1Solved) {
                 this.prompt1Open = true;
-                this.showCodePrompt("120phoenix", `# Puzzle 1\n...`, 1);
+                this.showCodePrompt("1", `q1`, 1);
             }
         }, undefined, this);
 
@@ -109,7 +113,7 @@ export default class Round2 extends Phaser.Scene {
         this.physics.add.overlap(this.player, terminal2Zone, () => {
             if (!this.prompt2Open && !this.code2Solved) {
                 this.prompt2Open = true;
-                this.showCodePrompt("27wizard", `# Puzzle 2\n...`, 2);
+                this.showCodePrompt("2", `q2`, 2);
             }
         }, undefined, this);
 
@@ -153,31 +157,33 @@ export default class Round2 extends Phaser.Scene {
         }
     }
 
-    showCodePrompt(correctCode, pythonSnippet, terminalNumber) {
+    showCodePrompt(correctCode, imgKey, terminalNumber) {
         this.physics.pause();
         const width = this.scale.width;
         const height = this.scale.height;
 
-        const overlay = this.add.rectangle(width / 2, height / 2, width * 0.6, height * 0.6, 0x000000, 0.95);
+        // --- Overlay ---
+        // const overlay = this.add.rectangle(width / 2, height / 2, width * 0.6, height * 0.6, 0x000000, 0.95);
 
-        const snippetText = this.add.text(width / 2, height / 2 - height * 0.25, pythonSnippet, {
-            fontSize: "18px",
-            color: "#00ff00",
-            fontFamily: "monospace",
-            wordWrap: { width: width * 0.54, useAdvancedWrap: true },
-        }).setOrigin(0.5, 0);
+        // --- Puzzle Image (instead of text) ---
+        const puzzleImg = this.add.image(width / 2, height / 2 - 50, imgKey)
+            .setOrigin(0.5)
+            .setScale(0.5);
 
-        const promptText = this.add.text(width / 2, height / 2 + height * 0.1, `Enter the answer below: (${this.chances} chances left)`, {
+        // --- Instruction text below the image ---
+        const promptText = this.add.text(width / 2, height / 2 + 150, `Enter the answer below: (${this.chances} chances left)`, {
             fontSize: "20px",
             color: "#ffffff",
+            fontFamily: "Press Start 2P",
         }).setOrigin(0.5);
 
+        // --- HTML Input Box ---
         const input = document.createElement("input");
         input.type = "text";
         input.placeholder = "Type your answer here...";
         input.style.position = "fixed";
         input.style.left = `${width / 2 - 100}px`;
-        input.style.top = `${height / 2 + 130}px`;
+        input.style.top = `${height / 2 + 180}px`;
         input.style.width = "200px";
         input.style.padding = "8px";
         input.style.fontSize = "16px";
@@ -187,14 +193,15 @@ export default class Round2 extends Phaser.Scene {
         document.body.appendChild(input);
         input.focus();
 
+        // --- Key Listener for Enter ---
         const keyListener = (e) => {
             if (e.key === "Enter") {
                 const answer = input.value.trim().toLowerCase();
                 if (answer === correctCode.toLowerCase()) {
                     input.removeEventListener("keydown", keyListener);
                     input.remove();
-                    overlay.destroy();
-                    snippetText.destroy();
+                    // overlay.destroy();
+                    puzzleImg.destroy();
                     promptText.destroy();
                     this.physics.resume();
 
@@ -211,6 +218,7 @@ export default class Round2 extends Phaser.Scene {
                         fontSize: "24px",
                         color: "#00ff00",
                     }).setOrigin(0.5);
+
                 } else {
                     this.chances = (typeof this.chances === 'number') ? this.chances - 1 : 2;
                     if (this.chances > 0) {
@@ -218,8 +226,8 @@ export default class Round2 extends Phaser.Scene {
                     } else {
                         input.removeEventListener("keydown", keyListener);
                         input.remove();
-                        overlay.destroy();
-                        snippetText.destroy();
+                        // overlay.destroy();
+                        puzzleImg.destroy();
                         promptText.destroy();
                         this.physics.resume();
                         this.prompt1Open = false;
@@ -231,4 +239,5 @@ export default class Round2 extends Phaser.Scene {
         };
         input.addEventListener("keydown", keyListener);
     }
+
 }

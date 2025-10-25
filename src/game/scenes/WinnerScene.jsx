@@ -30,16 +30,16 @@ export default class WinnerScene extends Phaser.Scene {
         // Timer value from state (registry)
         const timerStart = this.registry.get("timerStart");
         const timeTaken = timerStart
-            ? ((Date.now() - timerStart) / 1000).toFixed(2)
+            ? ((Date.now() - timerStart) / 1000 / 60).toFixed(2)
             : "N/A";
 
-        // Timer banner (your image)
+        // Timer banner image
         const timerBanner = this.add.image(width / 2, height / 2 + 100, "timeTaken")
             .setScale(0.2)
             .setOrigin(0.5);
 
         // Text overlay on top of the image
-        this.add.text(timerBanner.x, timerBanner.y + 50, `${timeTaken} seconds`, {
+        const timerText = this.add.text(timerBanner.x, timerBanner.y + 50, `${timeTaken} mins`, {
             fontSize: "40px",
             fontFamily: "monospace",
             color: "#ffffff",

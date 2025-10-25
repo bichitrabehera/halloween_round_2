@@ -28,6 +28,7 @@ import jump3 from "../../assets/char2.png";
 import arrow from "../../assets/arrow.svg";
 import terminalImg from "../../assets/terminal.png";
 import correctAnswer from "../../assets/correct_answer.svg";
+import q1 from "../../assets/question1.png"
 
 export default class Round1 extends Phaser.Scene {
     constructor() {
@@ -35,6 +36,7 @@ export default class Round1 extends Phaser.Scene {
     }
 
     preload() {
+        this.load.image("q1",q1)
         this.load.image("sky1", sky1);
         this.load.image("1", one);
         this.load.image("2", two);
@@ -287,85 +289,89 @@ export default class Round1 extends Phaser.Scene {
         if (onGround) this.canDoubleJump = true;
     }
 
-    showCodePrompt(correctCode = "735", pythonSnippet = `
-# Python puzzle example
-def secret_code():
-    return 7*100 + 3*10 + 5
-
-print(secret_code())  # ??? what is the output?
-`) {
+    showCodePrompt(correctCode = "735") {
         if (this.codeSolved) return;
         this.physics.pause();
 
         const width = this.scale.width;
         const height = this.scale.height;
-        const overlayHeight = Math.min(height * 0.8, 500);
-        const overlay = this.add.rectangle(width / 2, height / 2, 550, overlayHeight, 0x000000, 0.95);
 
-        const codeBox = document.createElement("div");
-        codeBox.style.position = "fixed";
-        codeBox.style.left = `${width / 2 - 250}px`;
-        codeBox.style.top = `${height / 2 - overlayHeight / 2 + 30}px`;
-        codeBox.style.width = "500px";
-        codeBox.style.height = `${overlayHeight - 180}px`;
-        codeBox.style.overflowY = "auto";
-        codeBox.style.background = "transparent";
-        codeBox.style.color = "#00ff00";
-        codeBox.style.fontFamily = "monospace";
-        codeBox.style.fontSize = "18px";
-        codeBox.style.whiteSpace = "pre-wrap";
-        codeBox.style.zIndex = "1000";
-        codeBox.textContent = pythonSnippet;
-        document.body.appendChild(codeBox);
-
+        // Background overlay (dark fade)
+        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8);
         this.promptOpen = true;
-        const promptText = this.add
-            .text(width / 2, height / 2 + overlayHeight / 2 - 100, `💻 Enter the answer below: (${this.chances} chances left)`, {
-                fontSize: "20px",
-                color: "#ffffff",
-            })
-            .setOrigin(0.5);
 
+        // Terminal popup image (centered)
+        const terminalPopup = this.add.image(width / 2, height / 2 - 50, "q1")
+            .setOrigin(0.5)
+            .setScale(0.5);
+
+        // Instruction text below the terminal
+        const promptText = this.add.text(width / 2, height / 2 + 150, "💻 Enter the secret code below:", {
+            fontSize: "24px",
+            color: "#ffffff",
+            fontFamily: "Press Start 2P",
+        }).setOrigin(0.5);
+
+        // HTML input box (below the popup)
         const input = document.createElement("input");
         input.type = "text";
         input.placeholder = "Type your answer here...";
         input.style.position = "fixed";
-        input.style.left = `${width / 2 - 100}px`;
-        input.style.top = `${height / 2 + overlayHeight / 2 - 70}px`;
-        input.style.width = "200px";
-        input.style.padding = "8px";
-        input.style.fontSize = "16px";
-        input.style.border = "2px solid #ff8800";
-        input.style.borderRadius = "20px";
+        input.style.left = `${width / 2 - 150}px`;
+        input.style.top = `${height / 2 + 180}px`;
+        input.style.width = "300px";
+        input.style.padding = "10px";
+        input.style.fontSize = "18px";
+        input.style.textAlign = "center";
+        input.style.border = "2px solid #00ffcc";
+        input.style.borderRadius = "12px";
+        input.style.background = "#001a1a";
+        input.style.color = "#00ffcc";
+        input.style.fontFamily = "monospace";
         input.style.zIndex = "1000";
         document.body.appendChild(input);
         input.focus();
 
+        // Key listener for Enter
         const keyListener = (e) => {
             if (e.key === "Enter") {
                 const answer = input.value.trim().toLowerCase();
+
                 if (answer === correctCode.toLowerCase()) {
+                    // ✅ Correct answer
                     input.removeEventListener("keydown", keyListener);
                     input.remove();
-                    codeBox.remove();
                     overlay.destroy();
+                    terminalPopup.destroy();
                     promptText.destroy();
+
                     this.codeSolved = true;
                     this.promptOpen = false;
                     this.physics.resume();
-                    this.add.image(width / 2, height / 2 - overlayHeight / 2 - 200, "correctAnswer").setOrigin(0.5);
+
+                    const correctImg = this.add.image(width / 2, height / 2, "correctAnswer")
+                        .setScale(0.7)
+                        .setOrigin(0.5);
+
+                    // Remove the image after 2 seconds (2000 ms)
+                    this.time.delayedCall(2000, () => {
+                        correctImg.destroy();
+                    });
+
+
                 } else {
-                    this.chances = this.chances - 1;
+                    // ❌ Wrong answer
+                    this.chances -= 1;
                     if (this.chances > 0) {
-                        promptText.setText(`❌ Wrong answer! ${this.chances} chance${this.chances === 1 ? "" : "s"} left.`);
+                        promptText.setText(`❌ Wrong code! ${this.chances} chance${this.chances === 1 ? "" : "s"} left.`);
                     } else {
                         input.removeEventListener("keydown", keyListener);
                         input.remove();
-                        codeBox.remove();
                         overlay.destroy();
+                        terminalPopup.destroy();
                         promptText.destroy();
-                        this.physics.resume();
                         this.promptOpen = false;
+                        this.physics.resume();
                         this.scene.start("GameOver");
                     }
                 }
@@ -373,4 +379,5 @@ print(secret_code())  # ??? what is the output?
         };
         input.addEventListener("keydown", keyListener);
     }
+
 }
